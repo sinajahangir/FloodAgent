@@ -7,6 +7,12 @@ Only version implemented for now is CoordinateFloodProximityAgent
 To be completed...
 
 '''
+import numpy as np
+from scipy.spatial import cKDTree
+import google.generativeai as genai
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.inference import VariableElimination
+from rasterio.warp import transform
 class CoordinateFloodProximityAgent:
     """
     An agent that uses an LLM to extract latitude and longitude from a user prompt
