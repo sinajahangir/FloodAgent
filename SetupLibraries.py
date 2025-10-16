@@ -17,15 +17,10 @@
 # This ensures a clean and efficient start for your agent's testing session.
 # ==============================================================================
 """
-#%% Install libraries
-!pip install pgmpy rasterio
 #%%Load libraries
-from pgmpy.models import DiscreteBayesianNetwork
-from pgmpy.inference import VariableElimination
-from rasterio.warp import transform
+from google.colab import userdata
 import os
 import sys
-# Removed: import subprocess (no longer needed)
 
 # List of core external packages required for the project
 EXTERNAL_PACKAGES = [
@@ -33,6 +28,8 @@ EXTERNAL_PACKAGES = [
     'numpy',
     'scipy',
     'google-genai',
+    'pgmpy',
+    'rasterio',
 ]
 
 # --- 1. DEFENSIVE IMPORT AND INSTALLATION BLOCK ---
@@ -42,6 +39,9 @@ try:
     import numpy as np
     from scipy.spatial import cKDTree
     import google.generativeai as genai
+    from pgmpy.models import DiscreteBayesianNetwork
+    from pgmpy.inference import VariableElimination
+    from rasterio.warp import transform
     import re
 
     print("Success: All core packages were already installed and imported.")
