@@ -7,3 +7,6 @@ The repo is specifically designed to run the agent in the Colab environment. If 
 # Setup and running
 Check the Google Colab demo file.
 
+# Data
+Sample necessary data for running the Colab notebook code is provided in the Data folder
+
