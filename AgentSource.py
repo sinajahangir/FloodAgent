@@ -13,6 +13,7 @@ import google.generativeai as genai
 from pgmpy.models import DiscreteBayesianNetwork
 from pgmpy.inference import VariableElimination
 from rasterio.warp import transform
+import re
 class CoordinateFloodProximityAgent:
     """
     An agent that uses an LLM to extract latitude and longitude from a user prompt
@@ -22,7 +23,7 @@ class CoordinateFloodProximityAgent:
 
     def __init__(self,
                  flood_pixel_coords: np.ndarray, sovi_coords: np.ndarray, sovi_array:np.ndarray,\
-                 pop_density_array:np.ndarray, BBN):
+                 pop_density_array:np.ndarray, BBN,llm_model):
         """
         Initializes the agent with building and flood location data.
 
