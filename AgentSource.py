@@ -88,7 +88,7 @@ class CoordinateFloodProximityAgent:
             #print(f"LLM response for coordinate extraction: '{extracted_text}'")
 
             if extracted_text == "Not in the database":
-                print("LLM indicated coordinates could not be found.")
+                #print("LLM indicated coordinates could not be found.")
                 return None
 
             match = re.match(r"LATITUDE=(-?[\d.]+),\s*LONGITUDE=(-?[\d.]+)", extracted_text, re.IGNORECASE)
@@ -121,7 +121,7 @@ class CoordinateFloodProximityAgent:
                 return None
 
         except Exception as e:
-            print(f"Error during LLM call or parsing for coordinate extraction: {e}")
+            #print(f"Error during LLM call or parsing for coordinate extraction: {e}")
             return None
 
 
