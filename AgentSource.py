@@ -13,6 +13,7 @@ import google.generativeai as genai
 from pgmpy.models import DiscreteBayesianNetwork
 from pgmpy.inference import VariableElimination
 from rasterio.warp import transform
+from IPython.display import IFrame, display
 import re
 class CoordinateFloodProximityAgent:
     """
@@ -23,7 +24,7 @@ class CoordinateFloodProximityAgent:
 
     def __init__(self,
                  flood_pixel_coords: np.ndarray, sovi_coords: np.ndarray, sovi_array:np.ndarray,\
-                 pop_density_array:np.ndarray, BBN,llm_model):
+                 pop_density_array:np.ndarray, BBN,llm_model,show_map=False):
         """
         Initializes the agent with building and flood location data.
 
@@ -45,6 +46,7 @@ class CoordinateFloodProximityAgent:
 
         self.BBN = BBN
         self.infer = VariableElimination(self.BBN)
+        self.map=show_map
 
 
         # Store flood pixel coordinates
@@ -68,6 +70,66 @@ class CoordinateFloodProximityAgent:
     def _infer_infrastructure_flood_vulnerability(self, rp='Moderate'):
         # To be completed
         return None
+    def generate_google_map_link(self,latitude_str: str, longitude_str: str, zoom_level: int = 14) -> dict:
+        """
+        Takes latitude and longitude as strings, validates them, and generates 
+        Google Maps URLs.
+
+        Args:
+            latitude_str: The latitude value as a string (e.g., "34.0522").
+            longitude_str: The longitude value as a string (e.g., "-118.2437").
+            zoom_level: The desired zoom level (1-20). Default is 14.
+
+        Returns:
+            A dictionary containing the generated URLs or an error message.
+            Example success:
+            {
+                "success": True,
+                "direct_link": "...",
+                "embed_link": "..."
+            }
+            Example failure:
+            {
+                "success": False,
+                "error": "..."
+            }
+        """
+        try:
+            # 1. Convert to float
+            lat = float(latitude_str.strip())
+            lon = float(longitude_str.strip())
+        except ValueError:
+            return {
+                "success": False,
+                "error": "Invalid input format. Latitude and Longitude must be numeric strings."
+            }
+
+        # 2. Validate Coordinate Ranges
+        if not (-90 <= lat <= 90):
+            return {
+                "success": False,
+                "error": f"Invalid Latitude: {lat}. Must be between -90 and 90."
+            }
+        if not (-180 <= lon <= 180):
+            return {
+                "success": False,
+                "error": f"Invalid Longitude: {lon}. Must be between -180 and 180."
+            }
+    
+        # 3. Generate URLs
+        # Direct View Link: uses the /@lat,lon,zoomz format
+        direct_link = f"https://www.google.com/maps/@{lat},{lon},{zoom_level}z"
+        
+        # Embed Link (for iframes): uses the ?q=lat,lon&output=embed format
+        embed_link = f"https://maps.google.com/maps?q={lat},{lon}&output=embed"
+        
+        # 4. Return results
+        return {
+            "success": True,
+            "direct_link": direct_link,
+            "embed_link": embed_link
+        }
+
 
 
     def _extract_lat_lon_from_prompt(self, prompt: str) -> tuple[float, float] | None:
@@ -102,6 +164,24 @@ class CoordinateFloodProximityAgent:
 
             if match:
                 lat_str, lon_str = match.groups()
+                if self.map:
+                    map_data = self.generate_google_map_link(
+                        latitude_str=lat_str, 
+                        longitude_str=lon_str, 
+                        zoom_level=10 # Set a moderate zoom level
+                    )
+                    if map_data["success"]:
+                        embed_url = map_data["embed_link"]
+
+                        print(f"Displaying Location: Lat={lat_str}, Lon={lon_str}")
+                        print(f"Direct Link (Open in New Tab): {map_data['direct_link']}")
+                        
+                        # Create the IFrame object
+                        # The IFrame constructor takes the URL, width, and height.
+                        map_iframe = IFrame(src=embed_url, width='100%', height=450)
+                        
+                        # Render the IFrame in the cell output
+                        display(map_iframe)
                 try:
                     latitude = float(lat_str)
                     longitude = float(lon_str)
