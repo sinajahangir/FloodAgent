@@ -65,6 +65,9 @@ except ImportError as e:
             import numpy as np
             from scipy.spatial import cKDTree
             import google.generativeai as genai
+            from pgmpy.models import DiscreteBayesianNetwork
+            from pgmpy.inference import VariableElimination
+            from rasterio.warp import transform
             import re
             print("Success: Packages installed and imported after retry.")
 
