@@ -31,6 +31,7 @@ EXTERNAL_PACKAGES = [
     'pgmpy',
     'rasterio',
     'ipywidgets',
+    'asyncio'
 ]
 
 # --- 1. DEFENSIVE IMPORT AND INSTALLATION BLOCK ---
@@ -45,6 +46,7 @@ try:
     from rasterio.warp import transform
     import re
     import ipywidgets as widgets
+    import asyncio
 
     print("Success: All core packages were already installed and imported.")
 
@@ -72,6 +74,7 @@ except ImportError as e:
             from rasterio.warp import transform
             import re
             import ipywidgets as widgets
+            import asyncio
             print("Success: Packages installed and imported after retry.")
 
         except Exception as e_retry:
