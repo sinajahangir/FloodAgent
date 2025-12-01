@@ -449,40 +449,27 @@ def _create_ipywidgets_gui(agent: CoordinateFloodProximityAgent, window_title: s
         update_chat_display()
     
     def on_send_click(b):
-        """Handle send button click."""
         user_input = input_text.value.strip()
         if not user_input:
             return
-        
-        # Add user message
+
         add_message_to_chat(user_input, "user")
-        input_text.value = ''
-        
-        # Update status
+        input_text.value = ""
+
         status_label.value = '<p style="color: orange; margin: 0;">Processing...</p>'
         send_button.disabled = True
         input_text.disabled = True
-        
-        # Process query in background thread
-        def process_query():
-            try:
-                response = agent.find_closest_flood_pixel_to_location(user_input)
-                # Update UI (thread-safe for widgets)
-                add_message_to_chat(response, "agent")
-                status_label.value = '<p style="color: green; margin: 0;">Ready</p>'
-                send_button.disabled = False
-                input_text.disabled = False
-            except Exception as e:
-                error_msg = f"An error occurred: {str(e)}"
-                add_message_to_chat(error_msg, "agent")
-                status_label.value = '<p style="color: red; margin: 0;">Error occurred</p>'
-                send_button.disabled = False
-                input_text.disabled = False
-        
-        # Use threading to prevent blocking UI
-        thread = threading.Thread(target=process_query, daemon=True)
-        thread.start()
-    
+
+        try:
+            response = agent.find_closest_flood_pixel_to_location(user_input)
+            add_message_to_chat(response, "agent")
+            status_label.value = '<p style="color: green; margin: 0;">Ready</p>'
+        except Exception as e:
+            add_message_to_chat(f"An error occurred: {e}", "agent")
+            status_label.value = '<p style="color: red; margin: 0;">Error</p>'
+
+        send_button.disabled = False
+        input_text.disabled = False
     def on_clear_click(b):
         """Handle clear button click."""
         chat_history.clear()
