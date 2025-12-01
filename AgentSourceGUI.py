@@ -17,6 +17,7 @@ from IPython.display import IFrame, display, HTML, clear_output
 import re
 import threading
 import datetime
+import html
 
 # Try to import tkinter (for local use)
 try:
