@@ -16,7 +16,7 @@ from rasterio.warp import transform
 from IPython.display import IFrame, display, HTML, clear_output
 import re
 import threading
-import asyncio
+import datetime
 
 # Try to import tkinter (for local use)
 try:
@@ -377,125 +377,166 @@ def create_chat_gui(agent: CoordinateFloodProximityAgent, window_title: str = "F
         return None
 
 
-def _create_ipywidgets_gui(agent, window_title="Flood Agent Chat"):
+def _create_ipywidgets_gui(agent, window_title: str = "Flood Agent Chat"):
+    """
+    Very simple, synchronous ipywidgets chat UI for Colab/Jupyter.
+    No threads, no asyncio. Buttons should work reliably.
+    """
 
-    # Main chat area
+    # Chat HTML area
     chat_html = widgets.HTML(
-        value='',
-    layout=widgets.Layout(height='500px', overflow='auto',
-                          border='2px solid #444', padding='10px',
-                          background_color='#1e1e1e')
+        value="",
+        layout=widgets.Layout(
+            height="400px",
+            overflow="auto",
+            border="1px solid #444",
+            padding="10px",
+            width="100%",
+        )
     )
 
+    # User input
     input_text = widgets.Textarea(
-        placeholder='Enter your query...',
-        layout=widgets.Layout(width='100%', height='90px'),
-        style={'description_width':'initial'}
+        value="",
+        placeholder='Enter your query here (e.g., "What is the flood risk at latitude 51.0, longitude -114.0?")',
+        description='Query:',
+        layout=widgets.Layout(width="100%", height="80px"),
+        style={'description_width': 'initial'},
     )
 
+    # Buttons
     send_button = widgets.Button(
-        description='Send', button_style='primary', icon='paper-plane',
-        layout=widgets.Layout(width='120px', margin='5px')
+        description="Send",
+        button_style="primary",
+        icon="paper-plane",
+        layout=widgets.Layout(width="100px", margin="5px 5px 5px 0"),
     )
 
     clear_button = widgets.Button(
-        description='Clear', icon='trash',
-        layout=widgets.Layout(width='120px', margin='5px')
+        description="Clear",
+        icon="trash",
+        layout=widgets.Layout(width="100px", margin="5px 5px 5px 5px"),
     )
 
-    status_label = widgets.HTML('<p style="color:#7CFC00;margin:0;">Ready</p>')
+    # Status label
+    status_label = widgets.HTML(
+        value='<span style="color:#00ff7f; font-weight:bold;">Ready</span>'
+    )
 
+    # Internal chat history (list of HTML message blocks)
     chat_history = []
 
+    # ---------- Helpers ----------
 
-    # ---------------- CHAT UPDATE ----------------###
     def update_chat_display():
-        header = """
-        <div style="font-family:Segoe UI,Arial;color:#EAEAEA;">
-            <h3 style="color:#4FC3F7;margin-top:0;">🌊 Flood Agent Assistant</h3>
-            <hr style="border:1px solid #444;">
+        """Rebuild the chat HTML from history."""
+        header = f"""
+        <div style="
+            font-family:Segoe UI, Arial, sans-serif;
+            background-color:#000000;
+            color:#f5f5f5;
+            padding:10px;">
+          <h3 style="color:#4FC3F7; margin-top:0;">🌊 Flood Agent Assistant</h3>
+          <p style="margin:0 0 8px 0;">
+            Ask about flood proximity, risk, or vulnerability for a location.
+          </p>
+          <p style="margin:0 0 8px 0; font-size:12px; color:#cccccc;">
+            Example: <em>"What is the flood risk at latitude 51.0, longitude -114.0?"</em>
+          </p>
+          <hr style="border:1px solid #444;">
         """
-        chat_html.value = header + ''.join(chat_history) + "</div>"
+        body = "".join(chat_history)
+        footer = "</div>"
+        chat_html.value = header + body + footer
 
-
-    # ---------------- ADD MESSAGE ----------------###
-    def add_message(msg, sender="agent"):
-        timestamp = __import__("datetime").datetime.now().strftime("%H:%M")
-        esc = html.escape(msg).replace("\n","<br>")
+    def add_message(text: str, sender: str = "agent"):
+        """Append a message to the history and refresh display."""
+        ts = datetime.now().strftime("%H:%M")
+        esc = html.escape(text).replace("\n", "<br>")
 
         if sender == "user":
             block = f"""
-            <div style="background-color:#0D47A1;color:white;padding:10px;
-                        margin:8px 0;border-radius:8px;margin-left:60px;">
-                <strong>👤 You ({timestamp})</strong><br>{esc}
-            </div>"""
+            <div style="
+                background-color:#1565C0;
+                color:#ffffff;
+                padding:8px;
+                margin:6px 0;
+                border-radius:6px;
+                margin-left:40px;
+                font-size:14px;">
+              <strong>👤 You ({ts})</strong><br>{esc}
+            </div>
+            """
         else:
             block = f"""
-            <div style="background-color:#2E2E2E;color:#EAEAEA;padding:10px;
-                        margin:8px 0;border-radius:8px;margin-right:60px;">
-                <strong>🤖 Agent ({timestamp})</strong><br>{esc}
-            </div>"""
+            <div style="
+                background-color:#222222;
+                color:#f5f5f5;
+                padding:8px;
+                margin:6px 0;
+                border-radius:6px;
+                margin-right:40px;
+                font-size:14px;">
+              <strong>🤖 Agent ({ts})</strong><br>{esc}
+            </div>
+            """
 
         chat_history.append(block)
         update_chat_display()
 
+    # ---------- Button callbacks (synchronous) ----------
 
-    # ---------------- ASYNC HANDLER ----------------###
-    async def on_send_click_async(b):
-
+    def on_send_click(b):
         user_input = input_text.value.strip()
         if not user_input:
             return
 
-        add_message(user_input, "user")
+        # Show user message
+        add_message(user_input, sender="user")
         input_text.value = ""
+
+        # Disable UI while processing
         send_button.disabled = True
+        clear_button.disabled = True
         input_text.disabled = True
-        status_label.value = '<p style="color:#FFA500;margin:0;">Processing...</p>'
+        status_label.value = '<span style="color:#ffa500; font-weight:bold;">Processing...</span>'
 
         try:
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None, agent.find_closest_flood_pixel_to_location, user_input
-            )
-            add_message(result, "agent")
-            status_label.value = '<p style="color:#7CFC00;margin:0;">Ready</p>'
+            # Synchronous call to your agent
+            response = agent.find_closest_flood_pixel_to_location(user_input)
+            add_message(str(response), sender="agent")
+            status_label.value = '<span style="color:#00ff7f; font-weight:bold;">Ready</span>'
         except Exception as e:
-            add_message(str(e), "agent")
-            status_label.value = '<p style="color:#FF6B6B;margin:0;">Error</p>'
+            add_message(f"Error: {e}", sender="agent")
+            status_label.value = '<span style="color:#ff5555; font-weight:bold;">Error</span>'
 
+        # Re-enable UI
         send_button.disabled = False
+        clear_button.disabled = False
         input_text.disabled = False
 
-
-    # FIX FOR COLAB — use create_task not ensure_future
-    def send_wrapper(b):
-        asyncio.create_task(on_send_click_async(b))
-
-    send_button.on_click(send_wrapper)
-
-
-    # ---------------- CLEAR HANDLER ----------------###
-    def on_clear(b):
+    def on_clear_click(b):
         chat_history.clear()
         update_chat_display()
 
-    clear_button.on_click(on_clear)
+    # Wire up handlers
+    send_button.on_click(on_send_click)
+    clear_button.on_click(on_clear_click)
 
-
-    # ---------------- LAYOUT ----------------###
+    # Layout
     button_row = widgets.HBox([send_button, clear_button, status_label])
-    main = widgets.VBox([
+    ui = widgets.VBox([
         widgets.HTML(
-            f'<h2 style="color:#4FC3F7;font-family:Segoe UI,Arial;">{window_title}</h2>'
+            f'<h2 style="color:#4FC3F7; font-family:Segoe UI, Arial, sans-serif;">{window_title}</h2>'
         ),
         chat_html,
         input_text,
-        button_row
+        button_row,
     ])
 
+    # Initial render
     update_chat_display()
-    display(main)
+    display(ui)
 
 
 def _create_tkinter_gui(agent: CoordinateFloodProximityAgent, window_title: str = "Flood Agent Chat"):
